@@ -17,6 +17,7 @@
 .sass-cache/
 .vagrant/
 /dist/
+__pycache__
 /docs/_build/
 /env/
 /logs/

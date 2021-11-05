@@ -1,8 +1,8 @@
-from django.urls import path, include
+from django.urls import re_path, include
 from application import views 
 
 urlpatterns = [
-    # path('users',views.allusers),
-    # path('profile',views.HomeInfo.as_view()),
+    re_path(r'^mainpage$', views.pageproduct),
+    re_path(r'^product$', views.product),
     # path('addhome',views.addHome),
 ]
