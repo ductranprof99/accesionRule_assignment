@@ -3,10 +3,13 @@ version: '3'
 services:
   web:
     build: .
+    image: ductran/django
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/app
-    environment:
-      - DATABASE_URL=${DATABASE_URL}
+    # environment:
+    #   - DATABASE_URL=${DATABASE_URL}
+    env_file:
+      - ./web_variable.env
     ports: 
       - "8000:8000"

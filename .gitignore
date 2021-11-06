@@ -25,3 +25,5 @@ __pycache__
 /web/media
 /stats/
 {{ project_name }}/settings/local.py
+migrations
+web_variable.env

@@ -2,6 +2,7 @@
 *.pyo
 *.mo
 *.db
+*.env
 *.css.map
 *.egg-info
 *.sql.gz
