@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 from django.http.response import JsonResponse
 from .serializers import *
 from rest_framework.generics import GenericAPIView
+from django.conf import settings
 # Create your views here.
 
 class MainPage(generics.GenericAPIView):
@@ -37,6 +38,25 @@ class MainPage(generics.GenericAPIView):
             return  JsonResponse(listProdPerPage, safe=False,  status=status.HTTP_202_ACCEPTED)
 
 
+class ShoppingCart(generics.GenericAPIView):
+    # serializer_class = UserSerializer
+
+    def get(self, request):
+        
+        # serializer = self.serializer_class(data=request.data)
+        # page = request.GET.get('page')
+        # order_by = request.GET.get('order')
+        
+        if not request.user.is_authenticated:
+            return  JsonResponse({}, safe=False,  status=status.HTTP_404_NOT_FOUND)
+        else :
+            'TODO'
+            # main page with sign in -> need to implement recommendation system
+            serializer.save()
+            if page != None and int(page)< 0:
+                return  JsonResponse({}, safe=False,  status=status.HTTP_404_NOT_FOUND)
+            listProdPerPage = utils.showProduct(0 if not page else int(page),order_by)
+            return  JsonResponse(listProdPerPage, safe=False,  status=status.HTTP_202_ACCEPTED)
 
 @api_view(['GET','POST'])
 def product(request):
@@ -138,7 +158,8 @@ class VerifyEmail(views.APIView):
     def get(self, request):
         token = request.GET.get('token')
         try:
-            payload = jwt.decode(token, settings.SECRET_KEY)
+            payload = jwt.decode(jwt=token,algorithms=["HS256"],key= os.getenv('SECRET_KEY'))
+            print(payload)
             user = User.objects.get(id=payload['user_id'])
             if not user.is_verified:
                 user.is_verified = True
