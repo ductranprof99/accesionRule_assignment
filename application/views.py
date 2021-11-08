@@ -10,13 +10,40 @@ from bs4 import BeautifulSoup
 from django.http.response import JsonResponse
 from .serializers import *
 from rest_framework.generics import GenericAPIView
-from django.conf import settings
 # Create your views here.
 
 class MainPage(generics.GenericAPIView):
     serializer_class = UserSerializer
 
+    token_param_config = openapi.Parameter('order', in_=openapi.IN_QUERY, description='Description', type=openapi.TYPE_STRING)
+
+    @swagger_auto_schema(manual_parameters=[token_param_config])
     def get(self, request):
+        
+        serializer = self.serializer_class(data=request.data)
+        isLogin = serializer.is_valid(raise_exception=False)
+        serializer.save()
+        page = request.GET.get('page')
+        # order_by = request.data['order']
+        order_by = None
+        
+        if not isLogin:
+            # main page without sign in
+            if page != None and int(page)< 0:
+                return  JsonResponse({}, safe=False,  status=status.HTTP_404_NOT_FOUND)
+            listProdPerPage = utils.showProduct(0 if not page else int(page),order_by)
+            return  JsonResponse(listProdPerPage, safe=False,  status=status.HTTP_202_ACCEPTED)
+        else :
+            'TODO'
+            # main page with sign in -> need to implement recommendation system
+            serializer.save()
+            if page != None and int(page)< 0:
+                return  JsonResponse({}, safe=False,  status=status.HTTP_404_NOT_FOUND)
+            listProdPerPage = utils.showProduct(0 if not page else int(page),order_by)
+            return  JsonResponse(listProdPerPage, safe=False,  status=status.HTTP_202_ACCEPTED)
+
+
+    def post(self, request):
         
         serializer = self.serializer_class(data=request.data)
         page = request.GET.get('page')
@@ -38,25 +65,25 @@ class MainPage(generics.GenericAPIView):
             return  JsonResponse(listProdPerPage, safe=False,  status=status.HTTP_202_ACCEPTED)
 
 
-class ShoppingCart(generics.GenericAPIView):
-    # serializer_class = UserSerializer
+# class ShoppingCart(generics.GenericAPIView):
+#     # serializer_class = UserSerializer
 
-    def get(self, request):
+#     def get(self, request):
         
-        # serializer = self.serializer_class(data=request.data)
-        # page = request.GET.get('page')
-        # order_by = request.GET.get('order')
+#         # serializer = self.serializer_class(data=request.data)
+#         # page = request.GET.get('page')
+#         # order_by = request.GET.get('order')
         
-        if not request.user.is_authenticated:
-            return  JsonResponse({}, safe=False,  status=status.HTTP_404_NOT_FOUND)
-        else :
-            'TODO'
-            # main page with sign in -> need to implement recommendation system
-            serializer.save()
-            if page != None and int(page)< 0:
-                return  JsonResponse({}, safe=False,  status=status.HTTP_404_NOT_FOUND)
-            listProdPerPage = utils.showProduct(0 if not page else int(page),order_by)
-            return  JsonResponse(listProdPerPage, safe=False,  status=status.HTTP_202_ACCEPTED)
+#         if not request.user.is_authenticated:
+#             return  JsonResponse({}, safe=False,  status=status.HTTP_404_NOT_FOUND)
+#         else :
+#             'TODO'
+#             # main page with sign in -> need to implement recommendation system
+#             serializer.save()
+#             if page != None and int(page)< 0:
+#                 return  JsonResponse({}, safe=False,  status=status.HTTP_404_NOT_FOUND)
+#             listProdPerPage = utils.showProduct(0 if not page else int(page),order_by)
+#             return  JsonResponse(listProdPerPage, safe=False,  status=status.HTTP_202_ACCEPTED)
 
 @api_view(['GET','POST'])
 def product(request):
@@ -77,28 +104,6 @@ def product(request):
         result['description'] = soup.get_text('\n')
         return JsonResponse(result, safe=False,  status=status.HTTP_202_ACCEPTED)
         
-
-
-@api_view(['GET','POST']) 
-def cart(request):
-    if request.method == 'GET':
-        # get cart
-        user = request.data['id']
-        pass
-    elif request.method == 'POST':
-        # add to cart
-        pass
-
-def history(request):
-    if request.method == 'GET':
-        # get history
-        pass
-    elif request.method == 'POST':
-        # add to history
-        pass
-
-def user(request):
-    pass
 
 
 class GoogleSocialAuthView(GenericAPIView):
@@ -180,72 +185,72 @@ class LoginAPIView(generics.GenericAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-# class RequestPasswordResetEmail(generics.GenericAPIView):
-#     serializer_class = ResetPasswordEmailRequestSerializer
+class RequestPasswordResetEmail(generics.GenericAPIView):
+    serializer_class = ResetPasswordEmailRequestSerializer
 
-#     def post(self, request):
-#         serializer = self.serializer_class(data=request.data)
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
 
-#         email = request.data.get('email', '')
+        email = request.data.get('email', '')
 
-#         if User.objects.filter(email=email).exists():
-#             user = User.objects.get(email=email)
-#             uidb64 = urlsafe_base64_encode(smart_bytes(user.id))
-#             token = PasswordResetTokenGenerator().make_token(user)
-#             current_site = get_current_site(
-#                 request=request).domain
-#             relativeLink = reverse(
-#                 'password-reset-confirm', kwargs={'uidb64': uidb64, 'token': token})
+        if User.objects.filter(email=email).exists():
+            user = User.objects.get(email=email)
+            uidb64 = urlsafe_base64_encode(smart_bytes(user.id))
+            token = PasswordResetTokenGenerator().make_token(user)
+            current_site = get_current_site(
+                request=request).domain
+            relativeLink = reverse(
+                'password-reset-confirm', kwargs={'uidb64': uidb64, 'token': token})
 
-#             redirect_url = request.data.get('redirect_url', '')
-#             absurl = 'http://'+current_site + relativeLink
-#             email_body = 'Hello, \n Use link below to reset your password  \n' + \
-#                 absurl+"?redirect_url="+redirect_url
-#             data = {'email_body': email_body, 'to_email': user.email,
-#                     'email_subject': 'Reset your passsword'}
-#             Util.send_email(data)
-#         return Response({'success': 'We have sent you a link to reset your password'}, status=status.HTTP_200_OK)
+            redirect_url = request.data.get('redirect_url', '')
+            absurl = 'http://'+current_site + relativeLink
+            email_body = 'Hello, \n Use link below to reset your password  \n' + \
+                absurl+"?redirect_url="+redirect_url
+            data = {'email_body': email_body, 'to_email': user.email,
+                    'email_subject': 'Reset your passsword'}
+            Util.send_email(data)
+        return Response({'success': 'We have sent you a link to reset your password'}, status=status.HTTP_200_OK)
 
 
-# class PasswordTokenCheckAPI(generics.GenericAPIView):
-#     serializer_class = SetNewPasswordSerializer
+class PasswordTokenCheckAPI(generics.GenericAPIView):
+    serializer_class = SetNewPasswordSerializer
 
-#     def get(self, request, uidb64, token):
+    def get(self, request, uidb64, token):
 
-#         redirect_url = request.GET.get('redirect_url')
+        redirect_url = request.GET.get('redirect_url')
 
-#         try:
-#             id = smart_str(urlsafe_base64_decode(uidb64))
-#             user = User.objects.get(id=id)
+        try:
+            id = smart_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(id=id)
 
-#             if not PasswordResetTokenGenerator().check_token(user, token):
-#                 if len(redirect_url) > 3:
-#                     return CustomRedirect(redirect_url+'?token_valid=False')
-#                 else:
-#                     return CustomRedirect(os.environ.get('FRONTEND_URL', '')+'?token_valid=False')
+            if not PasswordResetTokenGenerator().check_token(user, token):
+                if len(redirect_url) > 3:
+                    return CustomRedirect(redirect_url+'?token_valid=False')
+                else:
+                    return CustomRedirect(os.environ.get('FRONTEND_URL', '')+'?token_valid=False')
 
-#             if redirect_url and len(redirect_url) > 3:
-#                 return CustomRedirect(redirect_url+'?token_valid=True&message=Credentials Valid&uidb64='+uidb64+'&token='+token)
-#             else:
-#                 return CustomRedirect(os.environ.get('FRONTEND_URL', '')+'?token_valid=False')
+            if redirect_url and len(redirect_url) > 3:
+                return CustomRedirect(redirect_url+'?token_valid=True&message=Credentials Valid&uidb64='+uidb64+'&token='+token)
+            else:
+                return CustomRedirect(os.environ.get('FRONTEND_URL', '')+'?token_valid=False')
 
-#         except DjangoUnicodeDecodeError as identifier:
-#             try:
-#                 if not PasswordResetTokenGenerator().check_token(user):
-#                     return CustomRedirect(redirect_url+'?token_valid=False')
+        except DjangoUnicodeDecodeError as identifier:
+            try:
+                if not PasswordResetTokenGenerator().check_token(user):
+                    return CustomRedirect(redirect_url+'?token_valid=False')
                     
-#             except UnboundLocalError as e:
-#                 return Response({'error': 'Token is not valid, please request a new one'}, status=status.HTTP_400_BAD_REQUEST)
+            except UnboundLocalError as e:
+                return Response({'error': 'Token is not valid, please request a new one'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 
-# class SetNewPasswordAPIView(generics.GenericAPIView):
-#     serializer_class = SetNewPasswordSerializer
+class SetNewPasswordAPIView(generics.GenericAPIView):
+    serializer_class = SetNewPasswordSerializer
 
-#     def patch(self, request):
-#         serializer = self.serializer_class(data=request.data)
-#         serializer.is_valid(raise_exception=True)
-#         return Response({'success': True, 'message': 'Password reset success'}, status=status.HTTP_200_OK)
+    def patch(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response({'success': True, 'message': 'Password reset success'}, status=status.HTTP_200_OK)
 
 
 class LogoutAPIView(generics.GenericAPIView):
