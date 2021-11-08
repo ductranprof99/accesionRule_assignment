@@ -193,16 +193,16 @@ class CustomRedirect(HttpResponsePermanentRedirect):
 
 
 class UserSerializer(serializers.Serializer):
-    refresh = serializers.CharField()
-    access = serializers.CharField()
+    access = serializers.CharField(max_length=255)
+    refresh = serializers.CharField(max_length=255)
 
     default_error_message = {
         'bad_token': ('Token is expired or invalid')
     }
 
     def validate(self, attrs):
-        self.refresh = attrs['refresh']
         self.access = attrs['access']
+        self.refresh = attrs['refresh']
         return attrs
 
     def save(self, **kwargs):

@@ -13,21 +13,17 @@ from rest_framework.generics import GenericAPIView
 # Create your views here.
 
 class MainPage(generics.GenericAPIView):
-    serializer_class = UserSerializer
 
+    serializer_class = UserSerializer
     token_param_config = openapi.Parameter('order', in_=openapi.IN_QUERY, description='Description', type=openapi.TYPE_STRING)
 
     @swagger_auto_schema(manual_parameters=[token_param_config])
     def get(self, request):
         
-        serializer = self.serializer_class(data=request.data)
-        isLogin = serializer.is_valid(raise_exception=False)
-        serializer.save()
         page = request.GET.get('page')
-        # order_by = request.data['order']
-        order_by = None
+        order_by = None if not request.GET.get('order') else request.GET.get('order')
         
-        if not isLogin:
+        if not request.user.is_authenticated:
             # main page without sign in
             if page != None and int(page)< 0:
                 return  JsonResponse({}, safe=False,  status=status.HTTP_404_NOT_FOUND)
@@ -36,7 +32,6 @@ class MainPage(generics.GenericAPIView):
         else :
             'TODO'
             # main page with sign in -> need to implement recommendation system
-            serializer.save()
             if page != None and int(page)< 0:
                 return  JsonResponse({}, safe=False,  status=status.HTTP_404_NOT_FOUND)
             listProdPerPage = utils.showProduct(0 if not page else int(page),order_by)
