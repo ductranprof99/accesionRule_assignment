@@ -14,14 +14,15 @@ from rest_framework.generics import GenericAPIView
 
 class MainPage(generics.GenericAPIView):
 
-    serializer_class = UserSerializer
-    token_param_config = openapi.Parameter('order', in_=openapi.IN_QUERY, description='Description', type=openapi.TYPE_STRING)
+    serializer_class = MainPageSerializer
+    token_param_config = [openapi.Parameter('page', in_=openapi.IN_QUERY, type=openapi.TYPE_STRING,),
+                openapi.Parameter('order_by', in_=openapi.IN_QUERY, type=openapi.TYPE_STRING)]
 
-    @swagger_auto_schema(manual_parameters=[token_param_config])
+    @swagger_auto_schema(manual_parameters=token_param_config)
     def get(self, request):
         
         page = request.GET.get('page')
-        order_by = None if not request.GET.get('order') else request.GET.get('order')
+        order_by = None if not request.GET.get('order_by') else request.GET.get('order_by')
         
         if not request.user.is_authenticated:
             # main page without sign in
@@ -32,72 +33,83 @@ class MainPage(generics.GenericAPIView):
         else :
             'TODO'
             # main page with sign in -> need to implement recommendation system
+
             if page != None and int(page)< 0:
                 return  JsonResponse({}, safe=False,  status=status.HTTP_404_NOT_FOUND)
             listProdPerPage = utils.showProduct(0 if not page else int(page),order_by)
             return  JsonResponse(listProdPerPage, safe=False,  status=status.HTTP_202_ACCEPTED)
 
 
+class ProductInfor(generics.GenericAPIView):
+
+    token_param_config = openapi.Parameter('product_id', in_=openapi.IN_QUERY, type=openapi.TYPE_INTEGER)
+    @swagger_auto_schema(manual_parameters=[token_param_config])
+    def get(self, request):
+        
+        if not request.user.is_authenticated:
+            header = {  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36',
+                        'referer': None}
+            product_id = request.GET.get('product_id')
+            url_id = 'https://tiki.vn/api/v2/products/'+product_id
+            header['referer'] = url_id
+            try:
+                product_info = requests.get(url_id,headers=header).json()
+                soup = BeautifulSoup(product_info['description'])
+                result = utils.showProductByID(product_id)
+                result['description'] = soup.get_text('\n')
+                return  JsonResponse(result, safe=False,  status=status.HTTP_202_ACCEPTED)
+            except:
+                return JsonResponse({}, safe=False,  status=status.HTTP_404_NOT_FOUND)
+        else :
+            'TODO'
+            return JsonResponse(['a'], safe=False,  status=status.HTTP_202_ACCEPTED)
+            # rating product
+            # add product to cart = whistlist
+            
     def post(self, request):
+        data = request.data
+        # so many kind of response
+        if data['command'] == 'rating':
+            # rating product
+            # there something doing with utils
+
+            return JsonResponse({}, safe=False,  status=status.HTTP_202_ACCEPTED)
+        elif data['command'] == 'shopping_cart':
+            product_id = data['product_id']
+            user_id = request.user.id
+            quantity = data['quantity']
+            try:
+                utils.update_cart(product_id,user_id,quantity)
+                return JsonResponse({'successful'}, safe=False,  status=status.HTTP_202_ACCEPTED)
+            except:
+                return JsonResponse({}, safe=False,  status=status.HTTP_404_NOT_FOUND)
+
+        elif data['command'] == 'sameproduct':
+            # same product
+            # there something doing with utils
+            return JsonResponse({}, safe=False,  status=status.HTTP_202_ACCEPTED)
+
         
-        serializer = self.serializer_class(data=request.data)
-        page = request.GET.get('page')
-        order_by = request.GET.get('order')
+
+
+class ShoppingCart(generics.GenericAPIView):
+    # serializer_class = UserSerializer
+
+    def get(self, request):
+        
+        # serializer = self.serializer_class(data=request.data)
+        # page = request.GET.get('page')
+        # order_by = request.GET.get('order')
         
         if not request.user.is_authenticated:
-            # main page without sign in
-            if page != None and int(page)< 0:
-                return  JsonResponse({}, safe=False,  status=status.HTTP_404_NOT_FOUND)
-            listProdPerPage = utils.showProduct(0 if not page else int(page),order_by)
-            return  JsonResponse(listProdPerPage, safe=False,  status=status.HTTP_202_ACCEPTED)
+            product_id = request.GET.get('product_id')
+            
+            return  JsonResponse({}, safe=False,  status=status.HTTP_404_NOT_FOUND)
         else :
             'TODO'
             # main page with sign in -> need to implement recommendation system
-            serializer.save()
-            if page != None and int(page)< 0:
-                return  JsonResponse({}, safe=False,  status=status.HTTP_404_NOT_FOUND)
-            listProdPerPage = utils.showProduct(0 if not page else int(page),order_by)
-            return  JsonResponse(listProdPerPage, safe=False,  status=status.HTTP_202_ACCEPTED)
+            
 
-
-# class ShoppingCart(generics.GenericAPIView):
-#     # serializer_class = UserSerializer
-
-#     def get(self, request):
-        
-#         # serializer = self.serializer_class(data=request.data)
-#         # page = request.GET.get('page')
-#         # order_by = request.GET.get('order')
-        
-#         if not request.user.is_authenticated:
-#             return  JsonResponse({}, safe=False,  status=status.HTTP_404_NOT_FOUND)
-#         else :
-#             'TODO'
-#             # main page with sign in -> need to implement recommendation system
-#             serializer.save()
-#             if page != None and int(page)< 0:
-#                 return  JsonResponse({}, safe=False,  status=status.HTTP_404_NOT_FOUND)
-#             listProdPerPage = utils.showProduct(0 if not page else int(page),order_by)
-#             return  JsonResponse(listProdPerPage, safe=False,  status=status.HTTP_202_ACCEPTED)
-
-@api_view(['GET','POST'])
-def product(request):
-    header = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36',
-           'referer': None}
-    if request.method == 'POST':
-        # add to cart or something
-        pass
-    elif request.method == 'GET':
-        # for get request
-        # product_id = str(request.data['id'])
-        product_id = '10409803'
-        url_id = 'https://tiki.vn/api/v2/products/'+product_id
-        header['referer'] = url_id
-        product_info = requests.get(url_id,headers=header).json()
-        soup = BeautifulSoup(product_info['description'])
-        result = utils.showProductByID(product_id)
-        result['description'] = soup.get_text('\n')
-        return JsonResponse(result, safe=False,  status=status.HTTP_202_ACCEPTED)
         
 
 
@@ -143,7 +155,7 @@ class RegisterView(generics.GenericAPIView):
             ' Use the link below to verify your email \n' + absurl
         data = {'email_body': email_body, 'to_email': user.email,
                 'email_subject': 'Verify your email'}
-
+        utils.create_cart(request.data['email'])
         Util.send_email(data)
         return Response(user_data, status=status.HTTP_201_CREATED)
 

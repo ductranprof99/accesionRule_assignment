@@ -5,8 +5,8 @@ from rest_framework_simplejwt.views import (
 )
 
 urlpatterns = [
-    re_path(r'^product$', product),
     path('mainpage/',MainPage.as_view()),
+    path('product/',ProductInfor.as_view()),
     path('google/', GoogleSocialAuthView.as_view()),
     path('register/', RegisterView.as_view(), name="register"),
     path('login/', LoginAPIView.as_view(), name="login"),

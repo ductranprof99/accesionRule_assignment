@@ -192,7 +192,7 @@ class CustomRedirect(HttpResponsePermanentRedirect):
 
 
 
-class UserSerializer(serializers.Serializer):
+class MainPageSerializer(serializers.Serializer):
     access = serializers.CharField(max_length=255)
     refresh = serializers.CharField(max_length=255)
 

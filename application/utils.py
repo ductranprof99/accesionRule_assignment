@@ -89,6 +89,62 @@ def showProductByID(id):
         }
         ]) 
     return list(result)[0]
+
+def create_cart(user_email:str):
+    users = db.application_user
+    user_id = users.find_one({'email':user_email})['_id']
+    cart_collection = db.carts
+    cart_collection.insert_one({'user_email':user_id,'products':[], 'total_price':0,'categories':[]})
+
+def update_cart(user_email:str,product_id:int,quantity:int):
+    users = db.application_user
+    user_id = users.find_one({'email':user_email})['_id']
+    cart_collection = db.carts
+    cart = cart_collection.find_one({'user_email':user_id})
+    if cart == None:
+        create_cart(user_email)
+        cart = cart_collection.find_one({'user_email':user_id})
+    products = cart['products']
+    if quantity == 0:
+        for i in range(0,len(products)):
+            if products[i]['id'] == product_id:
+                products.pop(i)
+                break
+    else:
+        found = False
+        for i in range(0,len(products)):
+            if products[i]['id'] == product_id:
+                products[i]['quantity'] = quantity
+                found = True
+                break
+        if not found:
+            products.append({'id':product_id,'quantity':quantity})
+    total_price = 0
+    categories = []
+    for i in range(0,len(products)):
+        x = get_price_and_category_product(products[i]['id'])
+        total_price += products[i]['quantity'] * x[0]
+        categories.append(x[1])
+    cart_collection.update_one({'user_email':user_id},{'$set':{'products':products,'total_price':total_price,'categories':categories}})
+    
+def update_cart_products_list(user_email:str,products:list):
+    users = db.application_user
+    user_id = users.find_one({'email':user_email})['_id']
+    cart_collection = db.carts
+    total_price = 0
+    categories = []
+    for i in range(0,len(products)):
+        x = get_price_and_category_product(products[i]['id'])
+        total_price += products[i]['quantity'] * x[0]
+        categories.append(x[1])
+    cart_collection.update_one({'user_email':user_id},{'$set':{'products':products,'total_price':total_price,'categories':categories}}) 
+
+def get_price_and_category_product(product_id):
+    product_collection = db.products
+    mydoc = product_collection.find({'id':product_id},{'_id':0,'price':1})
+    category_collection = db.informations
+    product_category = category_collection.find_one({'id':product_id},{'_id':0,'categories':1})
+    return list(mydoc)[0]['price'],product_category['categories']
     
 def inspectError():
     for i in range(0,10):
