@@ -40,7 +40,7 @@ class MainPage(generics.GenericAPIView):
             return  JsonResponse(listProdPerPage, safe=False,  status=status.HTTP_202_ACCEPTED)
 
 
-class ProductInfor(generics.GenericAPIView):
+class Product(generics.GenericAPIView):
     serializer_class = ProductInformationSerializer
     token_param_config = openapi.Parameter('product_id', in_=openapi.IN_QUERY, type=openapi.TYPE_INTEGER)
     @swagger_auto_schema(manual_parameters=[token_param_config])
@@ -66,13 +66,13 @@ class ProductInfor(generics.GenericAPIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         # so many kind of response
         if request.user.is_authenticated:
-            if data['command'] == 'rating':
+            if data['command'] == 'rating' and data['rating'] != 0:
                 try:
                     utils.update_rating(request.user.id,(int)(data['product_id']),data['rating'])
                     return JsonResponse({}, safe=False,  status=status.HTTP_202_ACCEPTED)
                 except:
                     return JsonResponse({}, safe=False,  status=status.HTTP_406_NOT_ACCEPTABLE)
-            elif data['command'] == 'shopping':
+            elif data['command'] == 'buyproduct':
                 try:   
                     utils.update_cart(request.user.id,(int)(data['product_id']),data['quantity'])
                     return JsonResponse({'status':202}, safe=False,  status=status.HTTP_202_ACCEPTED)
@@ -84,29 +84,47 @@ class ProductInfor(generics.GenericAPIView):
                     return JsonResponse(result, safe=False,  status=status.HTTP_202_ACCEPTED)
                 except:
                     return JsonResponse({}, safe=False,  status=status.HTTP_406_NOT_ACCEPTABLE)
+            return JsonResponse({}, safe=False,  status=status.HTTP_406_NOT_ACCEPTABLE)
         else :
-            return JsonResponse({}, safe=False,  status=status.HTTP_404_NOT_FOUND)
+            return JsonResponse({}, safe=False,  status=status.HTTP_401_UNAUTHORIZED)
         
 class ShoppingCart(generics.GenericAPIView):
-    # serializer_class = UserSerializer
+    serializer_class = ShoppingCartSerializer
 
     def get(self, request):
-        
-        # serializer = self.serializer_class(data=request.data)
-        # page = request.GET.get('page')
-        # order_by = request.GET.get('order')
-        
-        if not request.user.is_authenticated:
-            product_id = request.GET.get('product_id')
-            
-            return  JsonResponse({}, safe=False,  status=status.HTTP_404_NOT_FOUND)
+        if not request.user.is_authenticated:            
+            return  JsonResponse({}, safe=False,  status=status.HTTP_401_UNAUTHORIZED)
         else :
-            'TODO'
-            # main page with sign in -> need to implement recommendation system
+            try:
+                result = utils.get_cart(request.user.id)
+                return  JsonResponse(result, safe=False,  status=status.HTTP_202_ACCEPTED)
+            except:
+                return JsonResponse({}, safe=False,  status=status.HTTP_404_NOT_FOUND)
+    def post(self, request):
+        data = request.data
+        serializer = self.serializer_class(data=request.data)
+        if request.user.is_authenticated:
+            if data['command'] == 'buy':
+                try:
+                    if request.user.id != data['user_id']:
+                        return JsonResponse({}, safe=False,  status=status.HTTP_406_NOT_ACCEPTABLE)
+                    utils.buy_products(request.user.id)
+                    return JsonResponse({}, safe=False,  status=status.HTTP_202_ACCEPTED)
+                except:
+                    return JsonResponse({}, safe=False,  status=status.HTTP_406_NOT_ACCEPTABLE)
+
+            elif data['command'] == 'modify':
+                if not serializer.is_valid():
+                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                try:
+                    utils.update_cart_with_requst(data)
+                    return JsonResponse({}, safe=False,  status=status.HTTP_202_ACCEPTED)
+                except:
+                    return JsonResponse({}, safe=False,  status=status.HTTP_406_NOT_ACCEPTABLE)
+            return JsonResponse({}, safe=False,  status=status.HTTP_406_NOT_ACCEPTABLE)
+        else:
+            return JsonResponse({}, safe=False,  status=status.HTTP_401_UNAUTHORIZED)
             
-
-        
-
 
 class GoogleSocialAuthView(GenericAPIView):
 

@@ -1,3 +1,5 @@
+import datetime
+from logging import captureWarnings
 from django.core.mail import EmailMessage
 from pymongo import MongoClient
 import os
@@ -90,20 +92,42 @@ def showProductByID(id):
         ]) 
     return list(result)[0]
 
+def buy_products(user_id):
+    cart_collection = db.cart
+    time = datetime.datetime.now()
+    date = time.strftime("%d-%m-%Y")
+    time = time.strftime("%H:%M:%S")
+    cart = cart_collection.find_one({'user_id':user_id})
+    cart_collection.delete_one({'user_id':user_id})
+    create_cart(user_id=user_id)
+    transaction_insert_data = {'date':date,'time':time,'categories':cart['categories'],'total_price':cart['total_price']}
+    db.transactions.insert_one(transaction_insert_data)
+
+
+
 def create_cart(user_email:str=None,user_id:int=None):
     users = db.application_user
     if not user_id:
-        user_id = users.find_one({'email':user_email})['_id']
+        user_id = users.find_one({'email':user_email})['id']
     cart_collection = db.cart
     cart_collection.insert_one({'user_id':user_id,'products':[], 'total_price':0,'categories':[]})
 
-def update_cart(user_id:int,product_id:int,quantity:int):
+def update_cart_with_requst(request):
+    user_id = request['user_id']
     cart_collection = db.cart
-    cart = cart_collection.find_one({'user_email':user_id})
-    
+    cart = cart_collection.find_one({'user_id':user_id})
     if cart == None:
         create_cart(user_id=user_id)
-        cart = cart_collection.find_one({'user_email':user_id})
+        cart = cart_collection.find_one({'user_id':user_id})
+    cart_collection.update_one({'user_id':user_id},{'$set':{'products':cart['products'],'total_price':cart['total_price'],'categories':cart['categories']}})
+    
+    
+def update_cart(user_id:int,product_id:int,quantity:int):
+    cart_collection = db.cart
+    cart = cart_collection.find_one({'user_id':user_id})
+    if cart == None:
+        create_cart(user_id=user_id)
+        cart = cart_collection.find_one({'user_id':user_id})
     products = cart['products']
     if quantity == 0:
         for i in range(0,len(products)):
@@ -124,8 +148,9 @@ def update_cart(user_id:int,product_id:int,quantity:int):
     for i in range(0,len(products)):
         x = get_price_and_category_product(products[i]['id'])
         total_price += products[i]['quantity'] * x[0]
-        categories.append(x[1])
-    cart_collection.update_one({'user_email':user_id},{'$set':{'products':products,'total_price':total_price,'categories':categories}})
+        if x[1][-1] not in categories:
+            categories.append(x[1][-1])
+    cart_collection.update_one({'user_id':user_id},{'$set':{'products':products,'total_price':total_price,'categories':categories}})
     
 def update_cart_products_list(user_email:str,products:list):
     users = db.application_user
@@ -137,7 +162,7 @@ def update_cart_products_list(user_email:str,products:list):
         x = get_price_and_category_product(products[i]['id'])
         total_price += products[i]['quantity'] * x[0]
         categories.append(x[1])
-    cart_collection.update_one({'user_email':user_id},{'$set':{'products':products,'total_price':total_price,'categories':categories}}) 
+    cart_collection.update_one({'user_id':user_id},{'$set':{'products':products,'total_price':total_price,'categories':categories}}) 
 
 def get_price_and_category_product(product_id):
     product_collection = db.products
@@ -181,9 +206,15 @@ def find_product_same_category(product_id):
     product_category = category_collection.find_one({'id':product_id},{'_id':0,'categories':1})
     categories = product_category['categories']
     mydoc = category_collection.find({'categories':{'$in':categories}},{'_id':0,'id':1})
-    return list(db.products.find({'id':{'$in':[x['id'] for x in mydoc]}},{'_id':0,'price':1,'name':1,'id':1,'thumbnail_url':1,'rating_average':1}))
+    return list(db.products.find({'id':{'$in':[x['id'] for x in mydoc]}},{'_id':0,'price':1,'name':1,'id':1,'thumbnail_url':1,'rating_average':1}).limit(20))
 
-
+def get_cart(user_id):
+    cart_collection = db.cart
+    cart = cart_collection.find_one({'user_id':user_id},{'_id':0})
+    if cart == None:
+        create_cart(user_id=user_id)
+        cart = cart_collection.find_one({'user_id':user_id},{'_id':0})
+    return cart
 
 def inspectError():
     for i in range(0,10):

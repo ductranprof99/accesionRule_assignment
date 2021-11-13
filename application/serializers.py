@@ -194,6 +194,15 @@ class ProductInformationSerializer(serializers.Serializer):
     class Meta:
         fields = ['command','product_id', 'rating', 'quantity']
 
+class ShoppingCartSerializer(serializers.Serializer):
+    command = serializers.CharField(min_length=6, max_length=68, write_only=True)
+    products = serializers.ListField(child=serializers.JSONField())
+    total_price = serializers.DecimalField(max_digits=10, decimal_places=3)
+    categories = serializers.ListField(child=serializers.CharField())
+    user_id = serializers.IntegerField()
+
+    class Meta:
+        fields = ['command','products','total_price', 'categories', 'user_id']
 
 
 class CustomRedirect(HttpResponsePermanentRedirect):
