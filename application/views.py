@@ -41,57 +41,53 @@ class MainPage(generics.GenericAPIView):
 
 
 class ProductInfor(generics.GenericAPIView):
-
+    serializer_class = ProductInformationSerializer
     token_param_config = openapi.Parameter('product_id', in_=openapi.IN_QUERY, type=openapi.TYPE_INTEGER)
     @swagger_auto_schema(manual_parameters=[token_param_config])
     def get(self, request):
-        
-        if not request.user.is_authenticated:
-            header = {  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36',
-                        'referer': None}
-            product_id = request.GET.get('product_id')
-            url_id = 'https://tiki.vn/api/v2/products/'+product_id
-            header['referer'] = url_id
-            try:
-                product_info = requests.get(url_id,headers=header).json()
-                soup = BeautifulSoup(product_info['description'])
-                result = utils.showProductByID(product_id)
-                result['description'] = soup.get_text('\n')
-                return  JsonResponse(result, safe=False,  status=status.HTTP_202_ACCEPTED)
-            except:
-                return JsonResponse({}, safe=False,  status=status.HTTP_404_NOT_FOUND)
-        else :
-            'TODO'
-            return JsonResponse(['a'], safe=False,  status=status.HTTP_202_ACCEPTED)
-            # rating product
-            # add product to cart = whistlist
+        header = {  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36',
+                    'referer': None}
+        product_id = request.GET.get('product_id')
+        url_id = 'https://tiki.vn/api/v2/products/'+product_id
+        header['referer'] = url_id
+        try:
+            product_info = requests.get(url_id,headers=header).json()
+            soup = BeautifulSoup(product_info['description'],features="html.parser")
+            result = utils.showProductByID(product_id)
+            result['description'] = soup.get_text('\n')
+            return  JsonResponse(result, safe=False,  status=status.HTTP_202_ACCEPTED)
+        except:
+            return JsonResponse({}, safe=False,  status=status.HTTP_404_NOT_FOUND)
             
     def post(self, request):
         data = request.data
+        serializer = self.serializer_class(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         # so many kind of response
-        if data['command'] == 'rating':
-            # rating product
-            # there something doing with utils
-
-            return JsonResponse({}, safe=False,  status=status.HTTP_202_ACCEPTED)
-        elif data['command'] == 'shopping_cart':
-            product_id = data['product_id']
-            user_id = request.user.id
-            quantity = data['quantity']
-            try:
-                utils.update_cart(product_id,user_id,quantity)
-                return JsonResponse({'successful'}, safe=False,  status=status.HTTP_202_ACCEPTED)
-            except:
-                return JsonResponse({}, safe=False,  status=status.HTTP_404_NOT_FOUND)
-
-        elif data['command'] == 'sameproduct':
-            # same product
-            # there something doing with utils
-            return JsonResponse({}, safe=False,  status=status.HTTP_202_ACCEPTED)
-
+        if request.user.is_authenticated:
+            if data['command'] == 'rating':
+                try:
+                    
+                    utils.update_rating((int)(data['product_id']),data['rating'])
+                    return JsonResponse({}, safe=False,  status=status.HTTP_202_ACCEPTED)
+                except:
+                    return JsonResponse({}, safe=False,  status=status.HTTP_406_NOT_ACCEPTABLE)
+            elif data['command'] == 'shopping':
+                try:   
+                    utils.update_cart(request.user.id,(int)(data['product_id']),data['quantity'])
+                    return JsonResponse({'status':202}, safe=False,  status=status.HTTP_202_ACCEPTED)
+                except:
+                    return JsonResponse({}, safe=False,  status=status.HTTP_406_NOT_ACCEPTABLE)
+            elif data['command'] == 'sameproduct':
+                try:
+                    result = utils.find_product_same_category((int)(data['product_id']))
+                    return JsonResponse(result, safe=False,  status=status.HTTP_202_ACCEPTED)
+                except:
+                    return JsonResponse({}, safe=False,  status=status.HTTP_406_NOT_ACCEPTABLE)
+        else :
+            return JsonResponse({}, safe=False,  status=status.HTTP_404_NOT_FOUND)
         
-
-
 class ShoppingCart(generics.GenericAPIView):
     # serializer_class = UserSerializer
 
@@ -155,7 +151,7 @@ class RegisterView(generics.GenericAPIView):
             ' Use the link below to verify your email \n' + absurl
         data = {'email_body': email_body, 'to_email': user.email,
                 'email_subject': 'Verify your email'}
-        utils.create_cart(request.data['email'])
+        utils.create_cart(email=request.data['email'])
         Util.send_email(data)
         return Response(user_data, status=status.HTTP_201_CREATED)
 

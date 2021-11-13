@@ -184,6 +184,16 @@ class GoogleSocialAuthSerializer(serializers.Serializer):
         return register_social_user(
             provider=provider, user_id=user_id, email=email, name=name)
 
+class ProductInformationSerializer(serializers.Serializer):
+    command = serializers.CharField(min_length=6, max_length=68, write_only=True)
+    product_id = serializers.CharField(min_length=1, write_only=True)
+    rating = serializers.FloatField(min_value=0, max_value=5, write_only=True, required=False)
+    quantity = serializers.IntegerField(min_value=0, write_only=True,required=False)
+
+
+    class Meta:
+        fields = ['command','product_id', 'rating', 'quantity']
+
 
 
 class CustomRedirect(HttpResponsePermanentRedirect):
