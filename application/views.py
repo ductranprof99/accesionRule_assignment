@@ -68,8 +68,7 @@ class ProductInfor(generics.GenericAPIView):
         if request.user.is_authenticated:
             if data['command'] == 'rating':
                 try:
-                    
-                    utils.update_rating((int)(data['product_id']),data['rating'])
+                    utils.update_rating(request.user.id,(int)(data['product_id']),data['rating'])
                     return JsonResponse({}, safe=False,  status=status.HTTP_202_ACCEPTED)
                 except:
                     return JsonResponse({}, safe=False,  status=status.HTTP_406_NOT_ACCEPTABLE)

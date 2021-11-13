@@ -95,7 +95,7 @@ def create_cart(user_email:str=None,user_id:int=None):
     if not user_id:
         user_id = users.find_one({'email':user_email})['_id']
     cart_collection = db.cart
-    cart_collection.insert_one({'user_email':user_id,'products':[], 'total_price':0,'categories':[]})
+    cart_collection.insert_one({'user_id':user_id,'products':[], 'total_price':0,'categories':[]})
 
 def update_cart(user_id:int,product_id:int,quantity:int):
     cart_collection = db.cart
@@ -146,15 +146,35 @@ def get_price_and_category_product(product_id):
     product_category = category_collection.find_one({'id':product_id},{'_id':0,'categories':1})
     return list(mydoc)[0]['price'],product_category['categories']
     
-def update_rating(product_id,rating):
+def update_rating(user_id,product_id,rating):
     product_collection = db.products
     mydoc = product_collection.find({'id':product_id},{'_id':0,'rating_average':1})
     point = list(mydoc)[0]['rating_average']
     inforamtion_collection = db.informations
     review_count = inforamtion_collection.find_one({'id':product_id},{'_id':0,'review_count':1})['review_count']
-    avegare_point = (float)((int)(point * review_count + rating/ (review_count + 1))*2)/2
+    old_point = history_rating_search(user_id,product_id)
+    if old_point != None:
+        rating = rating - old_point
+        avegare_point = (float)((int)(point * review_count + rating/ (review_count))*2)/2
+    else:
+        update_history_rating(user_id,product_id,rating)
+        avegare_point = (float)((int)(point * review_count + rating)/ (review_count + 1))*2/2
     inforamtion_collection.update_one({'id':product_id},{'$set':{'review_count':review_count+1}})
     product_collection.update_one({'id':product_id},{'$set':{'rating_average':avegare_point}})
+
+def history_rating_search(user_id:int,product_id:int):
+    history_collection = db.history_rating
+    user = history_collection.find_one({'user_id':user_id})
+    if user == None:
+        history_collection.insert_one({'user_id':user_id,'products':{}})
+        return None
+    if str(product_id) in user['products']:
+        return user['products'][product_id]
+    return None
+
+def update_history_rating(user_id:int,product_id:int,rating:int):
+    history_collection = db.history_rating
+    history_collection.update_one({'user_id':user_id},{'$set':{'products':{str(product_id):rating}}})
 
 def find_product_same_category(product_id):
     category_collection = db.informations
