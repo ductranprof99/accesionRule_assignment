@@ -23,21 +23,21 @@ class MainPage(generics.GenericAPIView):
         
         page = request.GET.get('page')
         order_by = None if not request.GET.get('order_by') else request.GET.get('order_by')
-        
+        response = {'list_product': [],'recommend_product': []}
         if not request.user.is_authenticated:
             # main page without sign in
             if page != None and int(page)< 0:
                 return  JsonResponse({}, safe=False,  status=status.HTTP_404_NOT_FOUND)
             listProdPerPage = utils.showProduct(0 if not page else int(page),order_by)
-            return  JsonResponse(listProdPerPage, safe=False,  status=status.HTTP_202_ACCEPTED)
+            response['list_product'] = listProdPerPage
+            return  JsonResponse(response, safe=False,  status=status.HTTP_202_ACCEPTED)
         else :
-            'TODO'
-            # main page with sign in -> need to implement recommendation system
-
             if page != None and int(page)< 0:
                 return  JsonResponse({}, safe=False,  status=status.HTTP_404_NOT_FOUND)
             listProdPerPage = utils.showProduct(0 if not page else int(page),order_by)
-            return  JsonResponse(listProdPerPage, safe=False,  status=status.HTTP_202_ACCEPTED)
+            response['list_product'] = listProdPerPage
+            response['recommend_product'] = utils.recommend_product(request.user.id)
+            return  JsonResponse(response, safe=False,  status=status.HTTP_202_ACCEPTED)
 
 
 class Product(generics.GenericAPIView):

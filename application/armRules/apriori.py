@@ -36,6 +36,7 @@ def main():
 
     # Create the association rules
     association_rules_model = association_rules(apriori_model, metric='lift', min_threshold=1)
+    association_rules_model.sort_values('confidence', ascending=False, inplace=True)
 
     # Print the results
     try:

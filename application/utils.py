@@ -216,6 +216,47 @@ def get_cart(user_id):
         cart = cart_collection.find_one({'user_id':user_id},{'_id':0})
     return cart
 
+def recommend_product(user_id):
+    list_categories = get_recommended_product(user_id)
+    if list_categories == None:
+        return []
+    result = []
+    # from functools import reduce
+    # result = reduce(get_product_by_categories,list_categories,result)
+    for i in list_categories:
+        result += get_product_by_categories(i)
+    return result[:20]
+
+def get_product_by_categories(categories:list):
+    mydoc = db.informations.find({'categories':{'$in':categories}},{'_id':0,'id':1})
+    return list(db.products.find({'id':{'$in':[x['id'] for x in mydoc]}},{'_id':0,'price':1,'name':1,'id':1,'thumbnail_url':1,'rating_average':1}).limit(20))
+
+def get_recommended_product(user_id) -> list[list[str]]: 
+    rules = db.rules
+    rules_set_current = rules.find_one({},{'_id':0})
+    cart = get_cart(user_id)
+    categories = cart['categories']
+    if len(categories) == None:
+        return None
+    antecedents = rules_set_current['antecedents']
+    consequents = rules_set_current['consequents']
+    list_key = compare_category_with_antecedents(categories,antecedents)
+    return [consequents[x] for x in list_key if x in list_key]
+    
+
+
+def compare_category_with_antecedents(categories,antecedents):
+    result = []
+    for antecedent in antecedents:
+        matches = len(set(categories).intersection(antecedents[antecedent]))
+        if matches == 0:
+            continue
+        else:
+            if matches/len(antecedents[antecedent]) > 0.3:
+                # neu nhu ti le trung nhau lon hon 30% thi them vao list
+                result.append(antecedent)
+    return result
+
 def inspectError():
     for i in range(0,10):
         print('\n')
