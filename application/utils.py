@@ -46,7 +46,7 @@ def showProduct(N:int=0,order_response:str=None):
             order_by = 'rating_average'
             direction = 1
     product_collection = db.products
-    mydoc = product_collection.find({},{'_id':0,'price':1,'name':1,'id':1,'thumbnail_url':1,'rating_average':1})
+    mydoc = product_collection.find({},{'_id':0,'price':1,'name':1,'id':1,'thumbnail_url':1,'rating_average':1,'original_price':1})
     if order_response:
         mydoc= mydoc.sort(order_by,direction)
     return list(mydoc)[N*10:N*10+10:1]

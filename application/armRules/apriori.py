@@ -6,7 +6,8 @@ import os,json
 
 client = MongoClient(os.getenv('DATABASE_URL'))
 db = client['smolARM']
-
+# Create a transaction encoder
+te = TransactionEncoder()
 def read_mongo():
     """ Read from Mongo and Store into DataFrame """
 
@@ -18,13 +19,19 @@ def read_mongo():
         result.append(doc['categories'])
     return result
 
+def anal_insert(data):
+    rules_collection = db.rules
+    if len(list(rules_collection.find({}))) != 0:
+        db.rules.remove({})
+    db.rules.insert(data)
+
+
 def main():
     # Read the data from the csv file
     
     transaction_list = read_mongo()
-
-    # Create a transaction encoder
-    te = TransactionEncoder()
+    
+    
     # Encode the dataframe
     te_ary = te.fit(transaction_list).transform(transaction_list)
 
@@ -37,10 +44,5 @@ def main():
     # Create the association rules
     association_rules_model = association_rules(apriori_model, metric='lift', min_threshold=1)
     association_rules_model.sort_values('confidence', ascending=False, inplace=True)
+    anal_insert(json.loads(association_rules_model.to_json()))
 
-    # Print the results
-    try:
-        db.rules.remove({})
-    except:
-        pass
-    db.rules.insert(json.loads(association_rules_model.to_json()))
