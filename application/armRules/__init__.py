@@ -10,7 +10,7 @@ def job():
     print("Job done!")
 
 def RunScheduleExec():
-    schedule.every(1).minutes.do(job)
+    schedule.every(10).minutes.do(job)
     while True:
         schedule.run_pending()
         time.sleep(5)
