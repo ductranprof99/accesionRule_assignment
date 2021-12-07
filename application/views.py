@@ -107,11 +107,11 @@ class ShoppingCart(generics.GenericAPIView):
             if data['command'] == 'buy':
                 try:
                     if request.user.id != data['user_id']:
-                        return JsonResponse({}, safe=False,  status=status.HTTP_406_NOT_ACCEPTABLE)
+                        return JsonResponse({'error': 'wrong user id'}, safe=False,  status=status.HTTP_406_NOT_ACCEPTABLE)
                     utils.buy_products(request.user.id)
-                    return JsonResponse({}, safe=False,  status=status.HTTP_202_ACCEPTED)
+                    return JsonResponse({'response': 'success'}, safe=False,  status=status.HTTP_202_ACCEPTED)
                 except:
-                    return JsonResponse({}, safe=False,  status=status.HTTP_406_NOT_ACCEPTABLE)
+                    return JsonResponse({'error': 'cannot send request'}, safe=False,  status=status.HTTP_406_NOT_ACCEPTABLE)
 
             elif data['command'] == 'modify':
                 if not serializer.is_valid():
@@ -120,10 +120,10 @@ class ShoppingCart(generics.GenericAPIView):
                     utils.update_cart_with_requst(data)
                     return JsonResponse({}, safe=False,  status=status.HTTP_202_ACCEPTED)
                 except:
-                    return JsonResponse({}, safe=False,  status=status.HTTP_406_NOT_ACCEPTABLE)
-            return JsonResponse({}, safe=False,  status=status.HTTP_406_NOT_ACCEPTABLE)
+                    return JsonResponse({'error': 'cannot send request'}, safe=False,  status=status.HTTP_406_NOT_ACCEPTABLE)
+            return JsonResponse({'error': 'cannot send request'}, safe=False,  status=status.HTTP_406_NOT_ACCEPTABLE)
         else:
-            return JsonResponse({}, safe=False,  status=status.HTTP_401_UNAUTHORIZED)
+            return JsonResponse({'error': 'cannot unauthorize'}, safe=False,  status=status.HTTP_401_UNAUTHORIZED)
             
 
 class GoogleSocialAuthView(GenericAPIView):
