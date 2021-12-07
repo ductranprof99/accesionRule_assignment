@@ -164,8 +164,7 @@ class RegisterView(generics.GenericAPIView):
         current_site = get_current_site(request).domain
         relativeLink = reverse('email-verify')
         absurl = 'http://'+current_site+relativeLink+"?token="+str(token)
-        email_body = 'Hi '+user.username + \
-            ' Use the link below to verify your email \n' + absurl
+        email_body = 'Hi '+ user.username + ',<br><br>' + 'Please click on the link below to verify your email address.<br><br>' + absurl
         data = {'email_body': email_body, 'to_email': user.email,
                 'email_subject': 'Verify your email'}
         utils.create_cart(email=request.data['email'])

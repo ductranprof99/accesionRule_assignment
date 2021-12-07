@@ -22,8 +22,8 @@ def read_mongo():
 def anal_insert(data):
     rules_collection = db.rules
     if len(list(rules_collection.find({}))) != 0:
-        db.rules.remove({})
-    db.rules.insert(data)
+        rules_collection.delete_many({})
+    rules_collection.insert_one(data)
 
 
 def main():
