@@ -112,15 +112,14 @@ def create_cart(user_email:str=None,user_id:int=None):
     cart_collection = db.cart
     cart_collection.insert_one({'user_id':user_id,'products':[], 'total_price':0,'categories':[]})
 
-def update_cart_with_requst(request:dict):
+def update_cart_with_requst(request):
     user_id = request['user_id']
     cart_collection = db.cart
     cart = cart_collection.find_one({'user_id':user_id})
     if cart == None:
         create_cart(user_id=user_id)
         cart = cart_collection.find_one({'user_id':user_id})
-    cart_collection.update_one({'user_id':user_id},{'$set':{'products':cart['products'],'total_price':cart['total_price'],'categories':cart['categories']}})
-    
+    cart_collection.update_one({'user_id':user_id},{'$set':{'products':request['products'],'total_price':request['total_price'],'categories':request['categories']}})
     
 def update_cart(user_id:int,product_id:int,quantity:int):
     cart_collection = db.cart

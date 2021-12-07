@@ -118,7 +118,7 @@ class ShoppingCart(generics.GenericAPIView):
                     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
                 try:
                     utils.update_cart_with_requst(data)
-                    return JsonResponse({}, safe=False,  status=status.HTTP_202_ACCEPTED)
+                    return JsonResponse({'status':'cart modified'}, safe=False,  status=status.HTTP_202_ACCEPTED)
                 except:
                     return JsonResponse({'error': 'cannot send request'}, safe=False,  status=status.HTTP_406_NOT_ACCEPTABLE)
             return JsonResponse({'error': 'cannot send request'}, safe=False,  status=status.HTTP_406_NOT_ACCEPTABLE)
